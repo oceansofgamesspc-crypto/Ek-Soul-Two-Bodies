@@ -49,8 +49,8 @@ client.on(Events.MessageCreate, async (message) => {
       return message.reply("You need to join a voice channel first.");
     }
 
-    const songPath = path.join(__dirname, "songs", "Ek Soul, Two Bodies.flac");
-
+    const songPath = path.join(__dirname, "songs", "Ek Soul, Two Bodies.mp3");
+    
     const connection = joinVoiceChannel({
       channelId: voiceChannel.id,
       guildId: message.guild.id,

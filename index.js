@@ -74,7 +74,7 @@ client.on(Events.MessageCreate, async (message) => {
 
     console.log("Joining voice channel...");
 
-    await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
+    await entersState(connection, VoiceConnectionStatus.Ready, 60_000);
 
     console.log("Voice connection is ready.");
 

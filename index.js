@@ -11,9 +11,7 @@ const {
   createAudioPlayer,
   createAudioResource,
   AudioPlayerStatus,
-  VoiceConnectionStatus,
   NoSubscriberBehavior,
-  entersState,
 } = require("@discordjs/voice");
 
 const path = require("path");
@@ -53,7 +51,6 @@ client.on(Events.MessageCreate, async (message) => {
     return message.reply("You need to join a voice channel first.");
   }
 
-  // IMPORTANT: Use MP3 file name exactly like this in GitHub
   const songPath = path.join(__dirname, "songs", "Ek Soul, Two Bodies.mp3");
 
   console.log("Song path:", songPath);
@@ -72,11 +69,7 @@ client.on(Events.MessageCreate, async (message) => {
       selfMute: false,
     });
 
-    console.log("Joining voice channel...");
-
-    await entersState(connection, VoiceConnectionStatus.Ready, 60_000);
-
-    console.log("Voice connection is ready.");
+    console.log("Joined voice channel request sent.");
 
     const player = createAudioPlayer({
       behaviors: {
@@ -106,12 +99,12 @@ client.on(Events.MessageCreate, async (message) => {
     connection.subscribe(player);
     player.play(resource);
 
-    console.log("Started playing song.");
+    console.log("Play command executed.");
 
     message.reply("🎶 Playing **Ek Soul, Two Bodies** in your voice channel.");
 
     player.on(AudioPlayerStatus.Idle, () => {
-      console.log("Song finished or player became idle.");
+      console.log("Player became idle.");
       connection.destroy();
     });
   } catch (error) {

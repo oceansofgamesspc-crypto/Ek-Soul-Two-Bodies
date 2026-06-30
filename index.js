@@ -11,10 +11,13 @@ const {
   createAudioPlayer,
   createAudioResource,
   AudioPlayerStatus,
+  VoiceConnectionStatus,
   NoSubscriberBehavior,
+  entersState,
 } = require("@discordjs/voice");
 
 const path = require("path");
+const fs = require("fs");
 
 const client = new Client({
   intents: [
@@ -35,28 +38,45 @@ client.on(Events.MessageCreate, async (message) => {
 
   const command = message.content.toLowerCase().trim();
 
-  if (command.startsWith("!play")) {
-    if (
-      command !== "!play ek soul, two bodies" &&
-      command !== "!play ek soul two bodies"
-    ) {
-      return message.reply("❌ Song not found. Try: `!play Ek Soul, Two Bodies`");
-    }
+  if (!command.startsWith("!play")) return;
 
-    const voiceChannel = message.member.voice.channel;
+  if (
+    command !== "!play ek soul, two bodies" &&
+    command !== "!play ek soul two bodies"
+  ) {
+    return message.reply("❌ Song not found. Try: `!play Ek Soul, Two Bodies`");
+  }
 
-    if (!voiceChannel) {
-      return message.reply("You need to join a voice channel first.");
-    }
+  const voiceChannel = message.member.voice.channel;
 
-    const songPath = path.join(__dirname, "songs", "Ek Soul, Two Bodies.mp3");
-    
+  if (!voiceChannel) {
+    return message.reply("You need to join a voice channel first.");
+  }
+
+  // IMPORTANT: Use MP3 file name exactly like this in GitHub
+  const songPath = path.join(__dirname, "songs", "Ek Soul, Two Bodies.mp3");
+
+  console.log("Song path:", songPath);
+
+  if (!fs.existsSync(songPath)) {
+    console.log("Song file not found!");
+    return message.reply("❌ Song file not found on server.");
+  }
+
+  try {
     const connection = joinVoiceChannel({
       channelId: voiceChannel.id,
       guildId: message.guild.id,
       adapterCreator: message.guild.voiceAdapterCreator,
       selfDeaf: false,
+      selfMute: false,
     });
+
+    console.log("Joining voice channel...");
+
+    await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
+
+    console.log("Voice connection is ready.");
 
     const player = createAudioPlayer({
       behaviors: {
@@ -64,26 +84,39 @@ client.on(Events.MessageCreate, async (message) => {
       },
     });
 
+    player.on("stateChange", (oldState, newState) => {
+      console.log(`Audio player: ${oldState.status} -> ${newState.status}`);
+    });
+
+    player.on("error", (error) => {
+      console.error("Audio player error:", error);
+      message.channel.send("❌ Audio player error. Check Railway logs.");
+    });
+
+    connection.on("stateChange", (oldState, newState) => {
+      console.log(`Voice connection: ${oldState.status} -> ${newState.status}`);
+    });
+
     const resource = createAudioResource(songPath, {
       inlineVolume: true,
     });
 
-    resource.volume.setVolume(0.6);
+    resource.volume.setVolume(1.0);
 
     connection.subscribe(player);
     player.play(resource);
 
+    console.log("Started playing song.");
+
     message.reply("🎶 Playing **Ek Soul, Two Bodies** in your voice channel.");
 
     player.on(AudioPlayerStatus.Idle, () => {
+      console.log("Song finished or player became idle.");
       connection.destroy();
     });
-
-    player.on("error", (error) => {
-      console.error(error);
-      message.channel.send("Something went wrong while playing the song.");
-      connection.destroy();
-    });
+  } catch (error) {
+    console.error("Main voice error:", error);
+    message.reply("❌ Failed to play song. Check Railway logs.");
   }
 });
 
